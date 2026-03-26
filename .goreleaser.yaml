@@ -1,0 +1,45 @@
+version: 2
+
+builds:
+  - main: .
+    binary: cableknit
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+homebrew_casks:
+  - repository:
+      owner: jessewaites
+      name: homebrew-cableknit
+    name: cableknit
+    homepage: "https://cableknit.ai"
+    description: "CableKnit CLI — manage plugins and runs"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"

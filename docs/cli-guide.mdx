@@ -1,0 +1,313 @@
+# CableKnit CLI
+
+The CableKnit CLI lets you build, validate, push, and monitor plugins from your terminal.
+
+## Installation
+
+### Homebrew (macOS & Linux)
+
+```bash
+brew install jessewaites/cableknit/cableknit
+```
+
+### Direct Download
+
+Download the latest binary from the [GitHub Releases](https://github.com/jessewaites/cableknit-cli/releases) page. Builds are available for macOS (Intel & Apple Silicon), Linux, and Windows.
+
+### Go Install
+
+```bash
+go install github.com/jessewaites/cableknit-cli@latest
+```
+
+Verify the installation:
+
+```bash
+cableknit version
+```
+
+## Authentication
+
+Before using most commands you need to log in with your CableKnit account.
+
+### Log in
+
+```bash
+cableknit login
+```
+
+An interactive form will prompt you for your email and password. On success you'll see your account details in a confirmation box.
+
+### Check your session
+
+```bash
+cableknit whoami
+```
+
+Prints your name, email, and publisher status.
+
+### Log out
+
+```bash
+cableknit logout
+```
+
+Clears your local session and invalidates the token on the server.
+
+## Plugin Development
+
+### Validate a bundle
+
+Run validation against the CableKnit platform without publishing anything:
+
+```bash
+# Validate the current directory (must contain plugin.json)
+cableknit validate
+
+# Validate a specific path
+cableknit validate ./my-plugin
+
+# Validate a .sweater file
+cableknit validate my-plugin.sweater
+```
+
+The CLI will zip the directory (if needed), upload it, and report any errors or warnings. A successful validation prints a summary of your plugin's name, slug, version, skills, automations, blueprints, and docs.
+
+### Package a bundle
+
+Create a `.sweater` file from a plugin directory without uploading:
+
+```bash
+# Package the current directory
+cableknit package
+
+# Package a specific path
+cableknit package ./my-plugin
+```
+
+The CLI validates that `plugin.json` exists and is valid JSON, then writes `<dirname>.sweater` to the current directory. This is useful for distributing bundles or archiving before pushing.
+
+### Push a bundle
+
+Publish or update your plugin:
+
+```bash
+cableknit push
+
+cableknit push ./my-plugin
+```
+
+The CLI tells you whether a new plugin was created or an existing one was updated.
+
+### Artifact Blueprints
+
+Blueprints let your plugin declare the types of artifacts it produces — reports, schedules, charts, documents, or any other structured output. When a user interacts with your plugin, the AI uses blueprints to create artifacts in the correct format with the right structure.
+
+Place blueprint definitions as JSON files in the `blueprints/` directory of your bundle:
+
+```
+my-plugin/
+├── plugin.json
+├── skills/
+├── automations/
+├── blueprints/
+│   ├── safety-report.json
+│   └── site-inspection.json
+├── docs/
+└── images/
+    └── icon.png          # Required — 512×512 app icon
+```
+
+Each blueprint file defines one artifact type:
+
+```json
+{
+  "name": "Safety Inspection Report",
+  "slug": "safety-report",
+  "artifact_type": "report",
+  "description": "Structured safety inspection report with findings and severity ratings.",
+  "instructions": "Generate a safety inspection report with sections: Executive Summary, Findings (each with location, severity, corrective action), Risk Rating.",
+  "content_schema": {
+    "type": "object",
+    "properties": {
+      "facility": { "type": "string" },
+      "findings": { "type": "array", "items": { "type": "object" } },
+      "risk_rating": { "type": "string", "enum": ["acceptable", "caution", "unacceptable"] }
+    }
+  },
+  "default_content": {
+    "facility": "",
+    "findings": [],
+    "risk_rating": "acceptable"
+  }
+}
+```
+
+**Required fields:**
+
+| Field | Description |
+|-------|-------------|
+| `name` | Display name for the blueprint |
+| `slug` | Unique identifier (lowercase, hyphens only) |
+| `artifact_type` | One of: `document`, `spreadsheet`, `csv`, `email_draft`, `schedule`, `report`, `chart`, `options_selection`, `json_data`, `other` |
+
+**Optional fields:**
+
+| Field | Description |
+|-------|-------------|
+| `description` | What this artifact type is for |
+| `instructions` | Natural-language guidance for the AI when generating this artifact |
+| `content_schema` | JSON object describing the expected data structure (max 4KB) |
+| `default_content` | Starting template values |
+
+**Limits:** A bundle can contain up to 20 blueprints.
+
+### Data Sources & Code Execution
+
+Data sources let your plugin expose queryable data to the AI. Instead of building individual tools, you declare data sources and the AI writes Ruby code to query them in a sandboxed environment (Enclave).
+
+Place data source definitions as JSON files in the `tools/` directory:
+
+```
+my-plugin/
+├── plugin.json
+├── skills/
+├── automations/
+├── blueprints/
+├── tools/
+│   ├── formulary.json
+│   ├── projects.json
+│   └── severity-levels.json
+├── docs/
+└── images/
+```
+
+Three source types are supported:
+
+**`data_store`** — reads from the plugin's key-value data store:
+
+```json
+{
+  "name": "formulary",
+  "slug": "formulary",
+  "description": "Returns medication formulary entries. Pass an NDC code to look up one.",
+  "parameters": [
+    { "name": "ndc_code", "type": "string", "description": "NDC code to look up", "required": false }
+  ],
+  "source": {
+    "type": "data_store",
+    "config": {
+      "key_prefix": "formulary:",
+      "single_key_template": "formulary:{{ndc_code}}"
+    }
+  }
+}
+```
+
+**`connector`** — fetches data from a connected external app:
+
+```json
+{
+  "name": "projects",
+  "slug": "projects",
+  "description": "Returns project data from Procore.",
+  "parameters": [
+    { "name": "status", "type": "string", "description": "Filter by status", "required": false }
+  ],
+  "source": {
+    "type": "connector",
+    "config": {
+      "connector": "procore",
+      "resources": "projects",
+      "filter_mapping": { "status": "{{status}}" }
+    }
+  }
+}
+```
+
+**`static`** — lookup table shipped in the bundle (max 64KB):
+
+```json
+{
+  "name": "severity_levels",
+  "slug": "severity-levels",
+  "description": "Returns OSHA severity level definitions.",
+  "source": {
+    "type": "static",
+    "config": {
+      "data": [
+        { "level": 1, "name": "Imminent Danger", "response_hours": 0 },
+        { "level": 2, "name": "Serious", "response_hours": 24 }
+      ]
+    }
+  }
+}
+```
+
+**Limits:** A bundle can contain up to 10 data source tools.
+
+## Monitoring
+
+### List plugins
+
+```bash
+cableknit plugins list
+```
+
+Displays an interactive table with columns for name, slug, version, status, visibility, and install count.
+
+### List runs
+
+```bash
+# All runs
+cableknit runs list
+
+# Filter by status
+cableknit runs list --status running
+
+# Limit results
+cableknit runs list --limit 10
+```
+
+Statuses are color-coded: running (blue), paused (yellow), completed (green), failed (red), and cancelled (dim).
+
+### Tail a run
+
+Stream live logs from a running automation:
+
+```bash
+cableknit runs tail RUN-7F3A
+```
+
+This opens a full-screen view with a scrolling log, an elapsed-time counter, and a live spinner. The view freezes and shows a summary when the run reaches a terminal state. Press `ctrl+c` to exit early.
+
+For plain-text output (useful for piping or CI):
+
+```bash
+cableknit runs tail RUN-7F3A --no-tui
+```
+
+## Global Flags
+
+These flags work with any command:
+
+| Flag | Description |
+|------|-------------|
+| `--api-url` | Override the API base URL |
+| `--no-color` | Disable color output |
+| `--debug` | Enable debug logging |
+| `--json` | Output structured JSON instead of styled text |
+
+### JSON Mode
+
+Any data command supports `--json` for scripting and automation:
+
+```bash
+cableknit plugins list --json
+cableknit runs list --json
+cableknit validate --json
+```
+
+## Configuration
+
+The CLI stores its config at `~/.cableknit/config.yaml`. This file holds your auth token and any overrides. You generally don't need to edit it directly — `cableknit login` and `cableknit logout` manage it for you.
