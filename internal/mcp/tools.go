@@ -513,7 +513,7 @@ func (s *Server) getBundleLimits() ToolResult {
 		"allowed_dirs":             []string{"plugin.json", "README.md", "skills/*.json", "automations/*.json", "blueprints/*.json", "tools/*.json", "docs/*.md", "images/*.(png|jpg|jpeg|webp)"},
 		"icon_required":            true,
 		"icon_format":              "512x512 PNG at images/icon.png",
-		"settings_types":           []string{"string", "email", "number", "boolean", "url"},
+		"settings_types":           []string{"string", "email", "number", "boolean", "url", "file"},
 		"slug_format":              "lowercase alphanumeric and hyphens only (a-z, 0-9, -)",
 		"version_format":           "semver (MAJOR.MINOR.PATCH, e.g. 1.0.0)",
 		"pricing_model":            "monthly only",

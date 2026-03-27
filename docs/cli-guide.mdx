@@ -244,6 +244,49 @@ Three source types are supported:
 }
 ```
 
+**`file_upload`** — reads parsed data from a customer-uploaded file (CSV, XLSX, or PDF). The customer uploads the file on the plugin's configure page. CSV and XLSX files are parsed into rows; PDF files have their text extracted. Requires a `file`-type entry in your `settings_schema`:
+
+First, declare the file upload setting in `plugin.json`:
+
+```json
+{
+  "settings_schema": [
+    {
+      "key": "employee-roster",
+      "label": "Employee Roster",
+      "type": "file",
+      "required": true,
+      "accept": ["csv", "xlsx"],
+      "max_rows": 5000
+    }
+  ]
+}
+```
+
+Then create a data source tool that references it:
+
+```json
+{
+  "name": "Employee Roster",
+  "slug": "employee-roster",
+  "description": "Search the uploaded employee roster by name or role.",
+  "parameters": [
+    { "name": "name", "type": "string", "description": "Employee name to search", "required": false },
+    { "name": "role", "type": "string", "description": "Filter by role", "required": false }
+  ],
+  "source": {
+    "type": "file_upload",
+    "config": {
+      "setting_key": "employee-roster"
+    }
+  }
+}
+```
+
+At runtime, CSV/XLSX files return an array of row objects (column headers as keys). PDF files return the extracted text as a string. Parameters filter rows by case-insensitive substring match.
+
+**File upload limits:** 25MB per file, 10,000 rows max per CSV/XLSX, 5 file uploads per plugin installation. Accepted file types: CSV, XLSX, PDF — declared per setting via `accept`.
+
 **Limits:** A bundle can contain up to 10 data source tools.
 
 ## Monitoring
