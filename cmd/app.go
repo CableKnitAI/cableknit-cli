@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -72,6 +74,7 @@ const (
 	menuGenerate
 	menuPackage
 	menuLogin
+	menuDevApply
 	menuWhoami
 	menuPluginsList
 	menuRunsList
@@ -101,6 +104,8 @@ func menuLabel(item menuItem) string {
 		return "Package as .sweater"
 	case menuLogin:
 		return "Login"
+	case menuDevApply:
+		return "Apply to Developer Program"
 	case menuWhoami:
 		return "Whoami"
 	case menuPluginsList:
@@ -138,7 +143,7 @@ func menuLabel(item menuItem) string {
 
 func needsAuth(item menuItem) bool {
 	switch item {
-	case menuWhoami, menuPluginsList, menuRunsList, menuRunsTail, menuConnectorsList, menuValidate, menuPush, menuLogs, menuMetrics, menuErrors, menuVersions, menuLogout:
+	case menuWhoami, menuPluginsList, menuRunsList, menuRunsTail, menuConnectorsList, menuGenerate, menuPackage, menuValidate, menuPush, menuLogs, menuMetrics, menuErrors, menuVersions, menuLogout:
 		return true
 	default:
 		return false
@@ -155,7 +160,7 @@ type menuGroup struct {
 var menuGroups = []menuGroup{
 	{title: "Build", items: []menuItem{menuReadme, menuSamplePlugin, menuToolsList, menuConnectorsList, menuGenerate, menuPackage, menuValidate, menuPush, menuMCPSetup}},
 	{title: "Monitor", items: []menuItem{menuRunsList, menuRunsTail, menuLogs, menuMetrics, menuErrors, menuVersions}},
-	{title: "Account", items: []menuItem{menuLogin, menuWhoami, menuPluginsList, menuLogout, menuExit}},
+	{title: "Account", items: []menuItem{menuLogin, menuDevApply, menuWhoami, menuPluginsList, menuLogout, menuExit}},
 }
 
 // cursorToGroupPos converts a flat cursor index to (groupIndex, rowInGroup).
@@ -185,6 +190,47 @@ func flatMenuItems() []menuItem {
 		items = append(items, g.items...)
 	}
 	return items
+}
+
+// visibleRowInGroup returns the visual row index (skipping hidden items) for a flat row in a group.
+func visibleRowInGroup(groupIdx, rowInGroup int, loggedIn bool) int {
+	vis := 0
+	for i := 0; i < rowInGroup; i++ {
+		if !isHidden(menuGroups[groupIdx].items[i], loggedIn) {
+			vis++
+		}
+	}
+	return vis
+}
+
+// flatIndexFromVisibleRow returns the flat cursor index for the nth visible row in a group.
+// If visRow exceeds visible items, clamps to the last visible item.
+func flatIndexFromVisibleRow(groupIdx, visRow int, loggedIn bool) int {
+	vis := 0
+	lastVisible := 0
+	for i, item := range menuGroups[groupIdx].items {
+		if isHidden(item, loggedIn) {
+			continue
+		}
+		if vis == visRow {
+			return groupPosToFlat(groupIdx, i)
+		}
+		lastVisible = i
+		vis++
+	}
+	return groupPosToFlat(groupIdx, lastVisible)
+}
+
+// skipHidden advances the cursor in the given direction (+1 or -1) past hidden items, wrapping around.
+func skipHidden(cursor, dir int, items []menuItem, loggedIn bool) int {
+	n := len(items)
+	for range n {
+		if !isHidden(items[cursor], loggedIn) {
+			return cursor
+		}
+		cursor = (cursor + dir + n) % n
+	}
+	return cursor
 }
 
 // --- Menu model ---
@@ -234,40 +280,37 @@ func (m menuModel) Update(msg tea.Msg) (menuModel, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		m.flash = ""
+		loggedIn := config.Token() != "" || api.DemoLoggedIn
 		switch msg.String() {
 		case "up", "k":
 			m.cursor--
 			if m.cursor < 0 {
 				m.cursor = len(items) - 1
 			}
+			m.cursor = skipHidden(m.cursor, -1, items, loggedIn)
 		case "down", "j":
 			m.cursor++
 			if m.cursor >= len(items) {
 				m.cursor = 0
 			}
+			m.cursor = skipHidden(m.cursor, 1, items, loggedIn)
 		case "left", "h":
-			// Jump to same row in previous card
 			groupIdx, rowInGroup := cursorToGroupPos(m.cursor)
 			if groupIdx > 0 {
+				visRow := visibleRowInGroup(groupIdx, rowInGroup, loggedIn)
 				groupIdx--
-				if rowInGroup >= len(menuGroups[groupIdx].items) {
-					rowInGroup = len(menuGroups[groupIdx].items) - 1
-				}
-				m.cursor = groupPosToFlat(groupIdx, rowInGroup)
+				m.cursor = flatIndexFromVisibleRow(groupIdx, visRow, loggedIn)
 			}
 		case "right", "l":
-			// Jump to same row in next card
 			groupIdx, rowInGroup := cursorToGroupPos(m.cursor)
 			if groupIdx < len(menuGroups)-1 {
+				visRow := visibleRowInGroup(groupIdx, rowInGroup, loggedIn)
 				groupIdx++
-				if rowInGroup >= len(menuGroups[groupIdx].items) {
-					rowInGroup = len(menuGroups[groupIdx].items) - 1
-				}
-				m.cursor = groupPosToFlat(groupIdx, rowInGroup)
+				m.cursor = flatIndexFromVisibleRow(groupIdx, visRow, loggedIn)
 			}
 		case "enter":
 			selected := items[m.cursor]
-			loggedIn := config.Token() != "" || api.DemoEnabled
+			loggedIn := config.Token() != "" || api.DemoLoggedIn
 			if needsAuth(selected) && !loggedIn && selected != menuLogout {
 				m.flash = "Log in first"
 				return m, nil
@@ -279,7 +322,7 @@ func (m menuModel) Update(msg tea.Msg) (menuModel, tea.Cmd) {
 }
 
 func (m menuModel) View() string {
-	loggedIn := config.Token() != "" || api.DemoEnabled
+	loggedIn := config.Token() != "" || api.DemoLoggedIn
 
 	cardGap := 3
 	totalCards := len(menuGroups)
@@ -381,7 +424,7 @@ func (m menuModel) View() string {
 
 	// Stats line
 	var statsLine string
-	if m.stats != nil {
+	if m.stats != nil && loggedIn {
 		dollars := fmt.Sprintf("$%d.%02d", m.stats.PayoutYTDCents/100, m.stats.PayoutYTDCents%100)
 		payoutStr := ui.SuccessStyle.Render(fmt.Sprintf("Payouts Year To Date USD: %s", dollars))
 		statsLine = ui.BlueStyle.Render(fmt.Sprintf(
@@ -423,6 +466,12 @@ func (m menuModel) View() string {
 }
 
 // renderCardRows returns each line of a card as a separate string, all exactly cardWidth wide.
+func isHidden(item menuItem, loggedIn bool) bool {
+	return (item == menuDevApply && loggedIn) ||
+		(item == menuLogin && loggedIn) ||
+		(item == menuLogout && !loggedIn)
+}
+
 func renderCardRows(group menuGroup, cardWidth, cursor, cursorOffset int, loggedIn bool) []string {
 	borderStyle := lipgloss.NewStyle().Foreground(ui.Dim)
 	titleStyle := lipgloss.NewStyle().Foreground(ui.Blue).Bold(true)
@@ -447,15 +496,27 @@ func renderCardRows(group menuGroup, cardWidth, cursor, cursorOffset int, logged
 	var rows []string
 	rows = append(rows, topBorder)
 
-	// Find max items across all groups for uniform height
+	// Find max visible items across all groups for uniform height
 	maxItems := 0
 	for _, g := range menuGroups {
-		if len(g.items) > maxItems {
-			maxItems = len(g.items)
+		visible := 0
+		for _, it := range g.items {
+			if !isHidden(it, loggedIn) {
+				visible++
+			}
+		}
+		if visible > maxItems {
+			maxItems = visible
 		}
 	}
 
+	visibleCount := 0
 	for i, item := range group.items {
+		if isHidden(item, loggedIn) {
+			continue
+		}
+		visibleCount++
+
 		globalIdx := cursorOffset + i
 		isSelected := globalIdx == cursor
 		isDimmed := needsAuth(item) && !loggedIn && item != menuLogout
@@ -482,7 +543,7 @@ func renderCardRows(group menuGroup, cardWidth, cursor, cursorOffset int, logged
 
 	// Pad with empty rows to match tallest card
 	emptyRow := borderStyle.Render("│") + strings.Repeat(" ", innerWidth) + borderStyle.Render("│")
-	for i := len(group.items); i < maxItems; i++ {
+	for i := visibleCount; i < maxItems; i++ {
 		rows = append(rows, emptyRow)
 	}
 
@@ -1230,6 +1291,20 @@ func (m appModel) handleMenuSelection(item menuItem) (tea.Model, tea.Cmd) {
 		m.screen = screenVersions
 		return m, m.versionsList.Init()
 
+	case menuDevApply:
+		url := config.APIURL() + "/developer/apply"
+		switch runtime.GOOS {
+		case "darwin":
+			exec.Command("open", url).Start()
+		case "linux":
+			exec.Command("xdg-open", url).Start()
+		default:
+			exec.Command("open", url).Start()
+		}
+		m.menu.flash = "Opening browser..."
+		m.screen = screenMenu
+		return m, nil
+
 	case menuLogout:
 		// Instant logout
 		if config.Token() != "" {
@@ -1237,6 +1312,7 @@ func (m appModel) handleMenuSelection(item menuItem) (tea.Model, tea.Cmd) {
 			_ = client.JSON("DELETE", "/api/v1/cli/sessions", nil, nil)
 		}
 		_ = config.ClearToken()
+		api.DemoLoggedIn = false
 		m.menu.flash = ""
 		m.screen = screenMenu
 		return m, nil

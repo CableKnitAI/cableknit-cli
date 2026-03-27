@@ -58,7 +58,7 @@ func init() {
 }
 
 func requireAuth() error {
-	if api.DemoEnabled {
+	if api.DemoLoggedIn {
 		return nil
 	}
 	if config.Token() == "" {

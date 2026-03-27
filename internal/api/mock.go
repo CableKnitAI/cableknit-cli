@@ -26,6 +26,7 @@ func (mc *MockClient) JSON(method, path string, body any, result any) error {
 
 	case method == "POST" && path == "/api/v1/cli/sessions":
 		time.Sleep(800 * time.Millisecond)
+		DemoLoggedIn = true
 		return mockUnmarshal(result, LoginResponse{
 			Token: "ck_mock_token_abc123",
 			User: User{
@@ -283,6 +284,9 @@ func mockUnmarshal(dest any, src any) error {
 
 // DemoEnabled is set by the --demo flag
 var DemoEnabled bool
+
+// DemoLoggedIn tracks login state in demo mode (starts false)
+var DemoLoggedIn bool
 
 // GetClient returns a mock or real client based on demo mode.
 func GetClient() interface {
