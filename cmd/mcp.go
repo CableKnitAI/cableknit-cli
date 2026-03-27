@@ -28,7 +28,7 @@ assistant can look up schemas, generate valid plugin code, validate bundles,
 explain errors, and walk you through building a complete plugin — all without
 leaving your editor.
 
-Works with: Claude Code, Cursor, Windsurf, Copilot, and any MCP-compatible editor.
+Works with: Claude Code, Cursor, Windsurf, Copilot, and any MCP-compatible AI system.
 
 
 How It Works
