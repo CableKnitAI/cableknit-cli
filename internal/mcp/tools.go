@@ -513,6 +513,8 @@ func (s *Server) getBundleLimits() ToolResult {
 		"allowed_dirs":             []string{"plugin.json", "README.md", "skills/*.json", "automations/*.json", "blueprints/*.json", "tools/*.json", "docs/*.md", "images/*.(png|jpg|jpeg|webp)"},
 		"icon_required":            true,
 		"icon_format":              "512x512 PNG at images/icon.png",
+		"screenshots_recommended":  true,
+		"screenshot_format":        "800x450 PNG at images/screenshot-1.png, screenshot-2.png, etc. (1-3 recommended, max 5)",
 		"settings_types":           []string{"string", "email", "number", "boolean", "url", "file"},
 		"slug_format":              "lowercase alphanumeric and hyphens only (a-z, 0-9, -)",
 		"version_format":           "semver (MAJOR.MINOR.PATCH, e.g. 1.0.0)",
@@ -1411,7 +1413,7 @@ func (s *Server) scaffoldBundle(args map[string]any) ToolResult {
 			slug + "/docs",
 			slug + "/images",
 		},
-		"instructions": fmt.Sprintf("Create the directory structure and write each file. Then add a 512x512 PNG icon at %s/images/icon.png. Run `cableknit validate ./%s` to check the bundle.", slug, slug),
+		"instructions": fmt.Sprintf("Create the directory structure and write each file. Then add a 512x512 PNG icon at %s/images/icon.png and 1-3 sample screenshots (800x450 PNG) at %s/images/screenshot-1.png, screenshot-2.png, etc. Run `cableknit validate ./%s` to check the bundle.", slug, slug, slug),
 	}
 
 	return jsonResult(files)
