@@ -31,7 +31,7 @@ func ClearToken() error {
 func APIURL() string {
 	u := viper.GetString("api_url")
 	if u == "" {
-		return "https://api.cableknit.ai"
+		return "https://cableknit.ai"
 	}
 	return u
 }

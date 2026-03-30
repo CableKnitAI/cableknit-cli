@@ -84,6 +84,6 @@ func initConfig() {
 	}
 
 	if viper.GetString("api_url") == "" {
-		viper.SetDefault("api_url", "https://api.cableknit.ai")
+		viper.SetDefault("api_url", "https://cableknit.ai")
 	}
 }
