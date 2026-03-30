@@ -25,7 +25,7 @@ archives:
       - goos: windows
         format: zip
 
-homebrew_casks:
+brews:
   - repository:
       owner: jessewaites
       name: homebrew-cableknit

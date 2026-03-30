@@ -77,26 +77,37 @@ type generateModel struct {
 	state    generateState
 	form     *huh.Form
 	spinner  spinner.Model
-	name     string
-	desc     string
-	category string
-	industry string
-	interval string
+	name     *string
+	desc     *string
+	category *string
+	industry *string
 	slug     string
 	err      error
 	embedded bool
 }
 
-func manifestCategories() []string {
+func categoryOptions() []huh.Option[string] {
+	// Try manifest first
 	if m := api.GetManifest(); m != nil {
 		if data := m.JSONContent("scaffold", "categories"); data != nil {
 			var cats []string
 			if json.Unmarshal(data, &cats) == nil && len(cats) > 0 {
-				return cats
+				var opts []huh.Option[string]
+				for _, c := range cats {
+					opts = append(opts, huh.NewOption(c, c))
+				}
+				return opts
 			}
 		}
 	}
-	return []string{"intake", "processing", "notification", "integration", "analytics"}
+
+	return []huh.Option[string]{
+		huh.NewOption("Intake — receive and route incoming data", "intake"),
+		huh.NewOption("Processing — transform, enrich, or analyze data", "processing"),
+		huh.NewOption("Notification — send alerts, emails, or messages", "notification"),
+		huh.NewOption("Integration — sync data between systems", "integration"),
+		huh.NewOption("Analytics — generate reports and insights", "analytics"),
+	}
 }
 
 type industryOption struct {
@@ -138,57 +149,36 @@ func manifestIndustries() []huh.Option[string] {
 	return options
 }
 
-func manifestBillingIntervals() []string {
-	if m := api.GetManifest(); m != nil {
-		if data := m.JSONContent("scaffold", "billing_intervals"); data != nil {
-			var intervals []string
-			if json.Unmarshal(data, &intervals) == nil && len(intervals) > 0 {
-				return intervals
-			}
-		}
-	}
-	return []string{"monthly", "yearly"}
-}
-
 func newGenerateModel() generateModel {
-	m := generateModel{}
-
-	categories := manifestCategories()
-	var catOptions []huh.Option[string]
-	for _, c := range categories {
-		catOptions = append(catOptions, huh.NewOption(c, c))
+	m := generateModel{
+		name:     new(string),
+		desc:     new(string),
+		category: new(string),
+		industry: new(string),
 	}
+
+	catOptions := categoryOptions()
 
 	industryOptions := manifestIndustries()
-
-	intervals := manifestBillingIntervals()
-	var intervalOptions []huh.Option[string]
-	for _, i := range intervals {
-		intervalOptions = append(intervalOptions, huh.NewOption(i, i))
-	}
 
 	m.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
 				Title("Plugin Name").
 				Placeholder("My Plugin").
-				Value(&m.name),
+				Value(m.name),
 			huh.NewInput().
 				Title("Description").
 				Placeholder("What does your plugin do?").
-				Value(&m.desc),
+				Value(m.desc),
 			huh.NewSelect[string]().
-				Title("Category").
+				Title("Plugin Category").
 				Options(catOptions...).
-				Value(&m.category),
+				Value(m.category),
 			huh.NewSelect[string]().
 				Title("Industry").
 				Options(industryOptions...).
-				Value(&m.industry),
-			huh.NewSelect[string]().
-				Title("Billing Interval").
-				Options(intervalOptions...).
-				Value(&m.interval),
+				Value(m.industry),
 		),
 	).WithTheme(huh.ThemeFunc(huh.ThemeCharm))
 
@@ -232,7 +222,7 @@ func (m generateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.form = form.(*huh.Form)
 
 		if m.form.State == huh.StateCompleted {
-			m.slug = slugify(m.name)
+			m.slug = slugify(*m.name)
 			m.state = generateWriting
 			return m, tea.Batch(m.spinner.Tick, m.doGenerate())
 		}
@@ -263,7 +253,7 @@ func (m generateModel) View() tea.View {
 	case generateDone:
 		content := fmt.Sprintf(
 			"%s  %s\n%s  ./%s/",
-			lipgloss.NewStyle().Bold(true).Render("Plugin:"), m.name,
+			lipgloss.NewStyle().Bold(true).Render("Plugin:"), *m.name,
 			lipgloss.NewStyle().Bold(true).Render("Created:"), m.slug,
 		)
 		s = "\n" + ui.SuccessBox.Render(content) + "\n\n"
@@ -277,7 +267,13 @@ func (m generateModel) View() tea.View {
 
 func (m generateModel) doGenerate() tea.Cmd {
 	return func() tea.Msg {
-		slug := slugify(m.name)
+		if strings.TrimSpace(*m.name) == "" {
+			return generateResultMsg{err: fmt.Errorf("plugin name is required")}
+		}
+		if strings.TrimSpace(*m.desc) == "" {
+			return generateResultMsg{err: fmt.Errorf("description is required")}
+		}
+		slug := slugify(*m.name)
 
 		dirs := []string{
 			slug,
@@ -297,7 +293,7 @@ func (m generateModel) doGenerate() tea.Cmd {
 		// plugin.json — use manifest defaults if available
 		defaults := map[string]any{
 			"version":         "0.1.0",
-			"price_cents":     50000,
+			"price_cents":     4900,
 			"settings_schema": []any{},
 		}
 		if mf := api.GetManifest(); mf != nil {
@@ -311,17 +307,17 @@ func (m generateModel) doGenerate() tea.Cmd {
 			}
 		}
 		pluginData := map[string]any{
-			"name":             m.name,
+			"name":             *m.name,
 			"slug":             slug,
 			"version":          defaults["version"],
-			"description":      m.desc,
-			"category":         m.category,
+			"description":      *m.desc,
+			"category":         *m.category,
 			"price_cents":      defaults["price_cents"],
-			"billing_interval": m.interval,
+			"billing_interval": "monthly",
 			"settings_schema":  defaults["settings_schema"],
 		}
 		pluginData["platform_tools"] = []any{}
-		if m.industry != "" {
+		if *m.industry != "" {
 			pluginData["industry"] = m.industry
 		}
 		pj, err := json.MarshalIndent(pluginData, "", "  ")
@@ -374,6 +370,63 @@ func (m generateModel) doGenerate() tea.Cmd {
 			return generateResultMsg{err: fmt.Errorf("write reference-data.json: %w", err)}
 		}
 
+		// automations/sample-intake.json — sample automation showing workflow structure
+		sampleAutomation := map[string]any{
+			"name":         "Sample Intake",
+			"slug":         "sample-intake",
+			"category":     "intake",
+			"trigger_type": "inbound_email",
+			"description":  "Sample automation — receives data, assesses it with AI, and notifies on completion. Replace with your own workflow.",
+			"workflow_definition": map[string]any{
+				"states": []map[string]any{
+					{
+						"name": "assess",
+						"type": "initial",
+						"entry_action": map[string]any{
+							"type":       "ai_assess",
+							"prompt":     "Analyze the incoming data. Extract key fields, flag anything unusual, and summarize.",
+							"output_key": "assessment",
+						},
+					},
+					{
+						"name": "notify",
+						"type": "terminal",
+						"entry_action": map[string]any{
+							"type":         "notify",
+							"channel":      "email",
+							"to_addresses": []string{"team@example.com"},
+							"subject":      "New intake processed",
+							"body":         "Assessment: {{assessment}}",
+						},
+					},
+				},
+				"transitions": []map[string]any{
+					{
+						"from_state": "assess",
+						"to_state":   "notify",
+						"priority":   1,
+						"condition":  map[string]any{"type": "fallback"},
+					},
+				},
+			},
+		}
+		saj, _ := json.MarshalIndent(sampleAutomation, "", "  ")
+		if err := os.WriteFile(filepath.Join(slug, "automations", "sample-intake.json"), saj, 0o644); err != nil {
+			return generateResultMsg{err: fmt.Errorf("write sample-intake.json: %w", err)}
+		}
+
+		// skills/sample-assistant.json — sample skill showing prompt structure
+		sampleSkill := map[string]any{
+			"name":        "Sample Assistant",
+			"slug":        "sample-assistant",
+			"action_type": "chat",
+			"system_prompt": "You are a helpful assistant for this plugin. Help users understand their data, answer questions about recent activity, and provide actionable recommendations. Reference the company's configuration and connected services when relevant.",
+		}
+		skj, _ := json.MarshalIndent(sampleSkill, "", "  ")
+		if err := os.WriteFile(filepath.Join(slug, "skills", "sample-assistant.json"), skj, 0o644); err != nil {
+			return generateResultMsg{err: fmt.Errorf("write sample-assistant.json: %w", err)}
+		}
+
 		// docs/getting-started.md — use manifest template if available
 		tmpl := "# {PluginName}\n\n{Description}\n\n## Getting Started\n\n1. Configure settings in the CableKnit dashboard\n2. Add automations in the `automations/` directory\n3. Add skills in the `skills/` directory\n4. Add artifact blueprints in the `blueprints/` directory\n5. Add data source tools in the `tools/` directory\n6. Run `cableknit validate` to check your bundle\n7. Run `cableknit push` to publish\n"
 		if mf := api.GetManifest(); mf != nil {
@@ -381,7 +434,7 @@ func (m generateModel) doGenerate() tea.Cmd {
 				tmpl = t
 			}
 		}
-		md := strings.Replace(strings.Replace(tmpl, "{PluginName}", m.name, 1), "{Description}", m.desc, 1)
+		md := strings.Replace(strings.Replace(tmpl, "{PluginName}", *m.name, 1), "{Description}", *m.desc, 1)
 		if err := os.WriteFile(filepath.Join(slug, "docs", "getting-started.md"), []byte(md), 0o644); err != nil {
 			return generateResultMsg{err: err}
 		}

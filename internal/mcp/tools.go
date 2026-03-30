@@ -1112,7 +1112,7 @@ func (s *Server) generatePluginJSON(args map[string]any) ToolResult {
 		"visibility":  "private",
 		"pricing": map[string]any{
 			"model":       "monthly",
-			"price_cents": 50000,
+			"price_cents": 4900,
 		},
 		"settings_schema": []any{},
 		"platform_tools":  []any{},

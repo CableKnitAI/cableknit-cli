@@ -30,8 +30,8 @@ func (mc *MockClient) JSON(method, path string, body any, result any) error {
 		return mockUnmarshal(result, LoginResponse{
 			Token: "ck_mock_token_abc123",
 			User: User{
-				Name:            "Jesse Waites",
-				Email:           "jesse@cableknit.ai",
+				Name:            "Demo User",
+				Email:           "demo@cableknit.ai",
 				PublisherStatus: "active",
 			},
 		})
@@ -43,8 +43,8 @@ func (mc *MockClient) JSON(method, path string, body any, result any) error {
 	case method == "GET" && path == "/api/v1/cli/me":
 		time.Sleep(400 * time.Millisecond)
 		return mockUnmarshal(result, User{
-			Name:            "Jesse Waites",
-			Email:           "jesse@cableknit.ai",
+			Name:            "Demo User",
+			Email:           "demo@cableknit.ai",
 			PublisherStatus: "active",
 		})
 
@@ -162,9 +162,9 @@ func (mc *MockClient) JSON(method, path string, body any, result any) error {
 		now := time.Now()
 		return mockUnmarshal(result, VersionsResponse{
 			Versions: []PluginVersion{
-				{Version: "1.2.0", Notes: "Added Slack integration", PushedAt: now.Add(-3 * time.Hour), PushedBy: "Jesse Waites"},
-				{Version: "1.1.0", Notes: "Bug fixes", PushedAt: now.Add(-24 * time.Hour), PushedBy: "Jesse Waites"},
-				{Version: "1.0.0", Notes: "Initial release", PushedAt: now.Add(-72 * time.Hour), PushedBy: "Jesse Waites"},
+				{Version: "1.2.0", Notes: "Added Slack integration", PushedAt: now.Add(-3 * time.Hour), PushedBy: "Demo User"},
+				{Version: "1.1.0", Notes: "Bug fixes", PushedAt: now.Add(-24 * time.Hour), PushedBy: "Demo User"},
+				{Version: "1.0.0", Notes: "Initial release", PushedAt: now.Add(-72 * time.Hour), PushedBy: "Demo User"},
 			},
 		})
 

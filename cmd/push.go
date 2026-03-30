@@ -3,8 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/progress"
 	"charm.land/bubbles/v2/spinner"
@@ -209,31 +207,13 @@ func (m pushModel) View() tea.View {
 
 func (m pushModel) doPush() tea.Cmd {
 	return func() tea.Msg {
-		r, size, name, err := bundle.Open(m.path)
+		r, _, name, err := bundle.Open(m.path)
 		if err != nil {
 			return pushResultMsg{err: err}
 		}
 
 		client := api.NewAPIClient()
 		var resp api.PushResponse
-
-		onProgress := func(bytesRead int64) {
-			if size > 0 {
-				// We can't send tea messages from here directly,
-				// but we track progress for the view
-				_ = float64(bytesRead) / float64(size)
-			}
-		}
-		_ = onProgress
-
-		// Use a ticker to simulate phased messages
-		done := make(chan struct{})
-		go func() {
-			time.Sleep(500 * time.Millisecond) // Brief zip phase
-			close(done)
-		}()
-		<-done
-
 		if err := client.Multipart("/api/v1/cli/plugins/push", "bundle", name, r, &resp); err != nil {
 			return pushResultMsg{err: err}
 		}
