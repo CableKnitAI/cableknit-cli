@@ -1,0 +1,20 @@
+{
+  "description": "Look up records from the plugin data store. Call with no args for all, or pass an ID.",
+  "name": "sample_lookup",
+  "parameters": [
+    {
+      "description": "Record ID to look up",
+      "name": "id",
+      "required": false,
+      "type": "string"
+    }
+  ],
+  "slug": "sample-lookup",
+  "source": {
+    "config": {
+      "key_prefix": "records:",
+      "single_key_template": "records:{{id}}"
+    },
+    "type": "data_store"
+  }
+}

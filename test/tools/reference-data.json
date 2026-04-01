@@ -1,0 +1,27 @@
+{
+  "description": "Returns reference data definitions. Replace with your own lookup table.",
+  "name": "reference_data",
+  "slug": "reference-data",
+  "source": {
+    "config": {
+      "data": [
+        {
+          "code": "A",
+          "description": "First category",
+          "label": "Category A"
+        },
+        {
+          "code": "B",
+          "description": "Second category",
+          "label": "Category B"
+        },
+        {
+          "code": "C",
+          "description": "Third category",
+          "label": "Category C"
+        }
+      ]
+    },
+    "type": "static"
+  }
+}

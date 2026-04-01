@@ -1,0 +1,43 @@
+{
+  "category": "intake",
+  "description": "Sample automation — receives data, assesses it with AI, and notifies on completion. Replace with your own workflow.",
+  "name": "Sample Intake",
+  "slug": "sample-intake",
+  "trigger_type": "inbound_email",
+  "workflow_definition": {
+    "states": [
+      {
+        "entry_action": {
+          "output_key": "assessment",
+          "prompt": "Analyze the incoming data. Extract key fields, flag anything unusual, and summarize.",
+          "type": "ai_assess"
+        },
+        "name": "assess",
+        "type": "initial"
+      },
+      {
+        "entry_action": {
+          "body": "Assessment: {{assessment}}",
+          "channel": "email",
+          "subject": "New intake processed",
+          "to_addresses": [
+            "team@example.com"
+          ],
+          "type": "notify"
+        },
+        "name": "notify",
+        "type": "terminal"
+      }
+    ],
+    "transitions": [
+      {
+        "condition": {
+          "type": "fallback"
+        },
+        "from_state": "assess",
+        "priority": 1,
+        "to_state": "notify"
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "billing_interval": "monthly",
+  "category": "notification",
+  "description": "Test`",
+  "industry": "finance_and_insurance",
+  "name": "Test ",
+  "platform_tools": [],
+  "price_cents": 4900,
+  "settings_schema": [],
+  "slug": "test",
+  "version": "0.1.0"
+}
