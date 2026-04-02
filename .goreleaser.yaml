@@ -29,6 +29,7 @@ brews:
   - repository:
       owner: cableknitai
       name: homebrew-cableknit
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     name: cableknit
     homepage: "https://cableknit.ai"
     description: "CableKnit CLI — manage plugins and runs"
