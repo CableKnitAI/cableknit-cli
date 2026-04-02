@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/jessewaites/cableknit-cli/internal/api"
-	"github.com/jessewaites/cableknit-cli/internal/config"
+	"github.com/cableknitai/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/config"
 )
 
 func allTools() []Tool {

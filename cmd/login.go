@@ -7,9 +7,9 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/jessewaites/cableknit-cli/internal/api"
-	"github.com/jessewaites/cableknit-cli/internal/config"
-	"github.com/jessewaites/cableknit-cli/internal/ui"
+	"github.com/cableknitai/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/config"
+	"github.com/cableknitai/cableknit-cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 

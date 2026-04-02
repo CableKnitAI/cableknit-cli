@@ -1,3 +1,4 @@
 cableknit
 dist/
 *.exe
+cli-cableknit/cableknit-cli

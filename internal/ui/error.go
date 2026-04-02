@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/jessewaites/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/api"
 )
 
 func RenderValidationErrors(errors []api.ValidationError) string {

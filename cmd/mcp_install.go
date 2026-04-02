@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/jessewaites/cableknit-cli/internal/ui"
+	"github.com/cableknitai/cableknit-cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 

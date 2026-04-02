@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jessewaites/cableknit-cli/internal/api"
-	"github.com/jessewaites/cableknit-cli/internal/config"
+	"github.com/cableknitai/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/config"
 )
 
 const cacheTTL = 1 * time.Hour

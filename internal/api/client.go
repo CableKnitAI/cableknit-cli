@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/jessewaites/cableknit-cli/internal/config"
+	"github.com/cableknitai/cableknit-cli/internal/config"
 )
 
 type Client struct {

@@ -7,17 +7,17 @@ Command-line tool for managing CableKnit plugins and automation runs.
 ### Homebrew
 
 ```bash
-brew install jessewaites/cableknit/cableknit
+brew install cableknitai/cableknit/cableknit
 ```
 
 ### Direct download
 
-Download the latest release from [GitHub Releases](https://github.com/jessewaites/cableknit-cli/releases).
+Download the latest release from [GitHub Releases](https://github.com/cableknitai/cableknit-cli/releases).
 
 ### Go install
 
 ```bash
-go install github.com/jessewaites/cableknit-cli@latest
+go install github.com/cableknitai/cableknit-cli@latest
 ```
 
 ## Usage
@@ -130,7 +130,7 @@ cableknit runs tail <run-id> --no-tui  # plain text output
 ## Dev setup
 
 ```bash
-git clone https://github.com/jessewaites/cableknit-cli.git
+git clone https://github.com/cableknitai/cableknit-cli.git
 cd cableknit-cli
 go build .
 ./cableknit version

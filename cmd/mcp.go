@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/jessewaites/cableknit-cli/internal/mcp"
+	"github.com/cableknitai/cableknit-cli/internal/mcp"
 	"github.com/spf13/cobra"
 )
 

@@ -27,7 +27,7 @@ archives:
 
 brews:
   - repository:
-      owner: jessewaites
+      owner: cableknitai
       name: homebrew-cableknit
     name: cableknit
     homepage: "https://cableknit.ai"

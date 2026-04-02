@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jessewaites/cableknit-cli/cmd"
+	"github.com/cableknitai/cableknit-cli/cmd"
 )
 
 var (

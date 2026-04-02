@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/jessewaites/cableknit-cli/internal/api"
-	"github.com/jessewaites/cableknit-cli/internal/config"
+	"github.com/cableknitai/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/config"
 )
 
 func resetAuthState() {

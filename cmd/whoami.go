@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"charm.land/lipgloss/v2"
-	"github.com/jessewaites/cableknit-cli/internal/api"
-	"github.com/jessewaites/cableknit-cli/internal/ui"
+	"github.com/cableknitai/cableknit-cli/internal/api"
+	"github.com/cableknitai/cableknit-cli/internal/ui"
 	"github.com/spf13/cobra"
 )
 
